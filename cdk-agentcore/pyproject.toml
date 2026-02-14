@@ -5,6 +5,8 @@ description = "AgentCore Runtime CDK Stack"
 requires-python = ">=3.10"
 dependencies = [
     "aws-cdk-lib>=2.235.1",
+    "boto3>=1.42.49",
+    "botocore[crt]>=1.42.49",
     "constructs>=10.0.0",
 ]
 
@@ -12,4 +14,10 @@ dependencies = [
 dev = [
     "pytest>=7.0.0",
     "pytest-cov>=4.0.0",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.2",
+    "pytest-cov>=7.0.0",
 ]
