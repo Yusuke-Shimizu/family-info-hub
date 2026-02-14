@@ -12,12 +12,22 @@ on:
       - 'agent/**'
       - '.github/workflows/agent-test.yml'
 
+permissions:
+  id-token: write
+  contents: read
+
 jobs:
   test:
     runs-on: ubuntu-latest
     
     steps:
     - uses: actions/checkout@v4
+    
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        role-to-assume: arn:aws:iam::889119567707:role/GitHubActionsRole
+        aws-region: us-west-2
     
     - name: Install uv
       uses: astral-sh/setup-uv@v5
@@ -34,7 +44,3 @@ jobs:
     - name: Run pytest
       working-directory: ./agent
       run: uv run pytest tests/ -v
-      env:
-        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        AWS_DEFAULT_REGION: us-west-2
