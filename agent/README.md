@@ -11,6 +11,8 @@ uv sync
 
 ## ローカルテスト
 
+### 手動テスト
+
 ```bash
 # エージェントをローカルで起動
 uv run python my_agent.py
@@ -24,6 +26,20 @@ curl -X POST http://localhost:8080/invocations \
   -H "Content-Type: application/json" \
   -d '{"prompt": "こんにちは！"}'
 ```
+
+### 自動テスト
+
+```bash
+# pytestでテストを実行
+uv run pytest tests/ -v
+```
+
+## GitHub Actions
+
+プッシュ時に自動的にエージェントのテストが実行されます：
+- エージェントの起動確認
+- 基本的な応答テスト
+- 計算テスト
 
 ## AgentCore Runtimeへのデプロイ
 
@@ -50,3 +66,4 @@ uv run agentcore destroy
 - 親切なアシスタントとして動作
 - ユーザーの質問に簡潔に答える
 - Bedrock上のClaude Sonnet 4.0を使用
+- デフォルトリージョン: us-west-2
