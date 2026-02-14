@@ -43,9 +43,23 @@
   - 月謝・費用関連
   - 先生からの連絡
 
-## 技術スタック（検討中）
+## 技術スタック
 
-TBD
+- **IaC**: AWS CDK (Python)
+- **Agent Framework**: Strands Agents
+- **Runtime**: Amazon Bedrock AgentCore
+- **LLM**: Claude Sonnet 4.0 on Amazon Bedrock
+- **Package Manager**: uv
+- **CI/CD**: GitHub Actions
+
+## GitHub Actions セットアップ
+
+GitHub ActionsでAWS OIDCを使用するため、以下のSecretを設定してください：
+
+1. GitHubリポジトリの Settings > Secrets and variables > Actions
+2. 以下のSecretを追加：
+   - `AWS_ROLE_ARN`: GitHub Actions用のIAMロールARN
+     - 例: `arn:aws:iam::YOUR_ACCOUNT_ID:role/GitHubActionsRole`
 
 ## 開発状況
 

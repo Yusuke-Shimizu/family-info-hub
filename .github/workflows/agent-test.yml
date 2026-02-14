@@ -26,7 +26,7 @@ jobs:
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v4
       with:
-        role-to-assume: arn:aws:iam::889119567707:role/GitHubActionsRole
+        role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
         aws-region: us-west-2
     
     - name: Install uv
