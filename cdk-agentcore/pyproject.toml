@@ -1,0 +1,9 @@
+[project]
+name = "cdk-agentcore"
+version = "0.1.0"
+description = "AgentCore Runtime CDK Stack"
+requires-python = ">=3.10"
+dependencies = [
+    "aws-cdk-lib>=2.235.1",
+    "constructs>=10.0.0",
+]
