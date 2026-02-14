@@ -105,11 +105,11 @@ def test_agent_empty_prompt(agent_server):
     """空のプロンプトテスト"""
     response = httpx.post(
         "http://localhost:8080/invocations",
-        json={"prompt": ""},
+        json={},  # promptキーなし
         timeout=30.0,
     )
     
-    # 空のプロンプトでも応答すること
+    # promptがない場合はデフォルトメッセージで応答すること
     assert response.status_code == 200
     data = response.json()
     assert "result" in data
