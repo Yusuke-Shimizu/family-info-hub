@@ -12,7 +12,7 @@ agent = Agent()
 
 
 @app.entrypoint
-def invoke(payload):
+def invoke(payload, context=None):
     """エージェントのエントリーポイント"""
     user_message = payload.get("prompt", "こんにちは！")
     
