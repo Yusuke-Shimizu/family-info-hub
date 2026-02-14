@@ -1,11 +1,13 @@
 from aws_cdk import (
     Stack,
-    aws_iam as iam,
-    aws_s3 as s3,
-    aws_s3_deployment as s3deploy,
-    RemovalPolicy,
     CfnOutput,
+    Duration,
+    RemovalPolicy,
+    aws_iam as iam,
+    aws_lambda as lambda_,
+    aws_dynamodb as dynamodb,
 )
+from aws_cdk import aws_bedrock_agentcore_alpha as agentcore
 from constructs import Construct
 
 
@@ -14,59 +16,118 @@ class CdkAgentcoreStack(Stack):
     def __init__(self, scope: Construct, construct_id: str, **kwargs) -> None:
         super().__init__(scope, construct_id, **kwargs)
 
-        # S3バケット: エージェントコードのデプロイ用
-        agent_bucket = s3.Bucket(
+        # エージェントのアーティファクトをローカルディレクトリから作成
+        agent_runtime_artifact = agentcore.AgentRuntimeArtifact.from_asset("../agent")
+
+        # AgentCore Runtimeを作成
+        runtime = agentcore.Runtime(
             self,
-            "AgentBucket",
-            removal_policy=RemovalPolicy.DESTROY,
-            auto_delete_objects=True,
+            "AgentRuntime",
+            runtime_name="my_agent",
+            agent_runtime_artifact=agent_runtime_artifact,
+            description="Simple Strands agent runtime",
+            network_configuration=agentcore.RuntimeNetworkConfiguration.using_public_network(),
+            environment_variables={
+                "AWS_DEFAULT_REGION": self.region
+            }
         )
 
-        # IAM実行ロール: AgentCore Runtime用
-        execution_role = iam.Role(
-            self,
-            "AgentExecutionRole",
-            assumed_by=iam.ServicePrincipal("bedrock.amazonaws.com"),
-            managed_policies=[
-                iam.ManagedPolicy.from_aws_managed_policy_name(
-                    "CloudWatchLogsFullAccess"
-                ),
-            ],
-        )
-
-        # Bedrock呼び出し権限
-        execution_role.add_to_policy(
+        # Bedrockモデル呼び出し権限を追加
+        runtime.add_to_role_policy(
             iam.PolicyStatement(
-                actions=["bedrock:InvokeModel"],
-                resources=[
-                    f"arn:aws:bedrock:{self.region}::foundation-model/anthropic.claude-*"
+                effect=iam.Effect.ALLOW,
+                actions=[
+                    "bedrock:InvokeModel",
+                    "bedrock:InvokeModelWithResponseStream"
                 ],
+                resources=[
+                    "arn:aws:bedrock:*::foundation-model/*",
+                    f"arn:aws:bedrock:*:{self.account}:inference-profile/*"
+                ]
             )
-        )
-
-        # S3読み取り権限
-        agent_bucket.grant_read(execution_role)
-
-        # エージェントコードをS3にデプロイ
-        s3deploy.BucketDeployment(
-            self,
-            "DeployAgentCode",
-            sources=[s3deploy.Source.asset("../agent")],
-            destination_bucket=agent_bucket,
-            destination_key_prefix="agent",
         )
 
         # 出力
         CfnOutput(
             self,
-            "AgentBucketName",
-            value=agent_bucket.bucket_name,
-            description="S3 bucket for agent code",
+            "AgentRuntimeId",
+            description="ID of the created agent runtime",
+            value=runtime.agent_runtime_id
         )
 
         CfnOutput(
             self,
-            "ExecutionRoleArn",
-            value=execution_role.role_arn,
-            description="IAM execution role ARN for AgentCore Runtime",
+            "AgentRuntimeArn",
+            description="ARN of the created agent runtime",
+            value=runtime.agent_runtime_arn
+        )
+
+        CfnOutput(
+            self,
+            "AgentRoleArn",
+            value=runtime.role.role_arn,
+            description="IAM role ARN for AgentCore Runtime",
+        )
+
+        # DynamoDBテーブル（セッション管理用）
+        session_table = dynamodb.Table(
+            self,
+            "LineAgentSessionTable",
+            table_name="LineAgentSessions",
+            partition_key=dynamodb.Attribute(
+                name="user_id",
+                type=dynamodb.AttributeType.STRING
+            ),
+            billing_mode=dynamodb.BillingMode.PAY_PER_REQUEST,
+            time_to_live_attribute="ttl",
+            removal_policy=RemovalPolicy.DESTROY,  # 開発用：本番環境ではRETAINに変更
+        )
+
+        # Lambda Function（LINE Bot Webhook Handler）
+        line_bot_lambda = lambda_.Function(
+            self,
+            "LineBotWebhookHandler",
+            runtime=lambda_.Runtime.PYTHON_3_13,
+            handler="lambda_function.lambda_handler",
+            code=lambda_.Code.from_asset("../line-bot-lambda"),
+            timeout=Duration.seconds(30),
+            memory_size=256,
+            environment={
+                "LINE_CHANNEL_ACCESS_TOKEN": "",  # デプロイ後に手動設定
+                "LINE_CHANNEL_SECRET": "",  # デプロイ後に手動設定
+                "AGENT_RUNTIME_ARN": runtime.agent_runtime_arn,
+                "SESSION_TABLE_NAME": session_table.table_name,
+            }
+        )
+
+        # Lambda Function URLを作成
+        function_url = line_bot_lambda.add_function_url(
+            auth_type=lambda_.FunctionUrlAuthType.NONE,  # LINE署名で保護
+        )
+
+        # DynamoDBテーブルへのアクセス権限
+        session_table.grant_read_write_data(line_bot_lambda)
+
+        # AgentCore Runtime呼び出し権限
+        line_bot_lambda.add_to_role_policy(
+            iam.PolicyStatement(
+                effect=iam.Effect.ALLOW,
+                actions=["bedrock-agentcore:InvokeAgentRuntime"],
+                resources=[runtime.agent_runtime_arn]
+            )
+        )
+
+        # 出力
+        CfnOutput(
+            self,
+            "LineBotWebhookUrl",
+            description="LINE Webhook URL (set this in LINE Developers Console)",
+            value=function_url.url
+        )
+
+        CfnOutput(
+            self,
+            "SessionTableName",
+            description="DynamoDB table name for session management",
+            value=session_table.table_name
         )
