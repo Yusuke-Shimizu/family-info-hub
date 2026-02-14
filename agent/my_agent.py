@@ -7,8 +7,8 @@ os.environ.setdefault("AWS_DEFAULT_REGION", "us-west-2")
 
 app = BedrockAgentCoreApp()
 
-# シンプルなエージェントを作成（デフォルトでClaude 4 Sonnetを使用）
-agent = Agent()
+# シンプルなエージェントを作成（us-west-2で利用可能なClaude 3.5 Sonnet v2を使用）
+agent = Agent(model="anthropic.claude-3-5-sonnet-20241022-v2:0")
 
 
 @app.entrypoint
