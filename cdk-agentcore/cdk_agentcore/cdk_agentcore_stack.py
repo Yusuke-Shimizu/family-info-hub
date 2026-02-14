@@ -3,12 +3,14 @@ from aws_cdk import (
     CfnOutput,
     Duration,
     RemovalPolicy,
+    BundlingOptions,
     aws_iam as iam,
     aws_lambda as lambda_,
     aws_dynamodb as dynamodb,
 )
 from aws_cdk import aws_bedrock_agentcore_alpha as agentcore
 from constructs import Construct
+import aws_cdk as core
 
 
 class CdkAgentcoreStack(Stack):
@@ -89,7 +91,16 @@ class CdkAgentcoreStack(Stack):
             "LineBotWebhookHandler",
             runtime=lambda_.Runtime.PYTHON_3_13,
             handler="lambda_function.lambda_handler",
-            code=lambda_.Code.from_asset("../line-bot-lambda"),
+            code=lambda_.Code.from_asset(
+                "../line-bot-lambda",
+                bundling=core.BundlingOptions(
+                    image=lambda_.Runtime.PYTHON_3_13.bundling_image,
+                    command=[
+                        "bash", "-c",
+                        "pip install --platform manylinux2014_x86_64 --only-binary=:all: -r requirements.txt -t /asset-output && cp -au . /asset-output"
+                    ],
+                )
+            ),
             timeout=Duration.seconds(30),
             memory_size=256,
             environment={
