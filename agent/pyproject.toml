@@ -1,0 +1,9 @@
+[project]
+name = "agent"
+version = "0.1.0"
+description = "Simple Strands Agent for AgentCore Runtime"
+requires-python = ">=3.10"
+dependencies = [
+    "bedrock-agentcore>=0.1.0",
+    "strands-agents>=0.1.0",
+]

@@ -2,16 +2,25 @@ from bedrock_agentcore import BedrockAgentCoreApp
 from strands import Agent
 
 app = BedrockAgentCoreApp()
+
+# シンプルなエージェントを作成（デフォルトでClaude 4 Sonnetを使用）
 agent = Agent()
 
 
 @app.entrypoint
 def invoke(payload):
-    """AI agent function"""
-    user_message = payload.get("prompt", "Hello! How can I help you today?")
+    """エージェントのエントリーポイント"""
+    user_message = payload.get("prompt", "こんにちは！")
+    
+    # エージェントを実行
     result = agent(user_message)
+    
     return {"result": result.message}
 
 
 if __name__ == "__main__":
+    # ローカルでテスト実行（ポート8080で起動）
+    print("Starting agent on http://localhost:8080")
     app.run()
+
+
