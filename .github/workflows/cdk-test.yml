@@ -1,0 +1,40 @@
+name: CDK Test
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'cdk-agentcore/**'
+      - '.github/workflows/cdk-test.yml'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'cdk-agentcore/**'
+      - '.github/workflows/cdk-test.yml'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Install uv
+      uses: astral-sh/setup-uv@v5
+      with:
+        version: "latest"
+    
+    - name: Set up Python
+      run: uv python install 3.10
+    
+    - name: Install dependencies
+      working-directory: ./cdk-agentcore
+      run: uv sync
+    
+    - name: Run CDK synth
+      working-directory: ./cdk-agentcore
+      run: uv run cdk synth
+    
+    - name: Run tests
+      working-directory: ./cdk-agentcore
+      run: uv run pytest tests/
