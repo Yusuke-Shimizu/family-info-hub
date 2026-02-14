@@ -1,5 +1,9 @@
+import os
 from bedrock_agentcore import BedrockAgentCoreApp
 from strands import Agent
+
+# デフォルトリージョンを設定
+os.environ.setdefault("AWS_DEFAULT_REGION", "us-west-2")
 
 app = BedrockAgentCoreApp()
 
