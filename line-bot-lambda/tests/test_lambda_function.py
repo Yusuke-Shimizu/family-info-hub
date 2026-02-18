@@ -15,7 +15,7 @@ import boto3
 # 環境変数を設定
 os.environ["LINE_CHANNEL_ACCESS_TOKEN"] = "test_access_token"
 os.environ["LINE_CHANNEL_SECRET"] = "test_channel_secret"
-os.environ["AGENT_RUNTIME_ARN"] = "arn:aws:bedrock-agentcore:us-west-2:123456789012:runtime/test-agent"
+os.environ["AGENT_RUNTIME_ARN"] = "arn:aws:bedrock-agentcore:us-west-2:000000000000:runtime/test-agent"
 os.environ["SESSION_TABLE_NAME"] = "TestLineAgentSessions"
 
 # テスト用にモジュールをインポート

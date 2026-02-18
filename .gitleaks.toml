@@ -10,7 +10,11 @@ useDefault = true
 description = "Allowlist for false positives"
 paths = [
   '''\.envrc\.example$''',
+  '''\.envrc$''',
   '''docs/.*\.md$''',
+  '''\.pytest_cache/.*''',
+  '''uv\.lock$''',
+  '''.*\.lock$''',
 ]
 
 # AWS Account ID pattern
