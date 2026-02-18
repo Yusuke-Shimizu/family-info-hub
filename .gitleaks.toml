@@ -27,6 +27,11 @@ tags = ["aws", "account-id"]
 paths = [
   '''\.envrc\.example$''',
   '''README\.md$''',
+  '''tests/.*\.py$''',
+]
+regexes = [
+  '''000000000000''',
+  '''123456789012''',
 ]
 
 # LINE Channel Secret pattern
