@@ -1,0 +1,6 @@
+# Gitleaks ignore file
+# 誤検知を無視するためのファイル
+
+# Example patterns (実際の値は含まれていません)
+1234567890abcdef1234567890abcdef
+eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9

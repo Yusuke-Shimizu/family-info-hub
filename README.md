@@ -52,7 +52,46 @@
 - **Package Manager**: uv
 - **CI/CD**: GitHub Actions
 
-## GitHub Actions セットアップ
+## セットアップガイド
+
+### 開発環境のセットアップ
+
+#### 1. pre-commitフックのインストール（推奨）
+
+シークレット情報の誤コミットを防ぐため、gitleaksをpre-commitフックとして設定：
+
+```bash
+# pre-commitをインストール
+brew install pre-commit
+
+# または
+pip install pre-commit
+
+# pre-commitフックを有効化
+pre-commit install
+```
+
+これにより、コミット前に自動的にgitleaksがシークレット情報をスキャンします。
+
+#### 2. gitleaksの手動実行
+
+```bash
+# Homebrewでインストール
+brew install gitleaks
+
+# リポジトリ全体をスキャン
+gitleaks detect --verbose
+
+# 特定のファイルをスキャン
+gitleaks detect --source . --verbose
+```
+
+### クイックスタート
+
+最短5分でLINE Botをセットアップ：
+- [クイックスタートガイド](docs/QUICK_START.md) - 最短手順でセットアップ
+
+### GitHub Actions セットアップ
 
 GitHub ActionsでAWS OIDCを使用するため、以下のSecretを設定してください：
 
@@ -60,6 +99,18 @@ GitHub ActionsでAWS OIDCを使用するため、以下のSecretを設定して�
 2. 以下のSecretを追加：
    - `AWS_ROLE_ARN`: GitHub Actions用のIAMロールARN
      - 例: `arn:aws:iam::YOUR_ACCOUNT_ID:role/GitHubActionsRole`
+
+### LINE Bot セットアップ
+
+LINE Messaging APIの認証情報をローカルで管理し、Lambda関数に設定する方法：
+
+1. **認証情報の取得**: [LINE認証情報のローカル設定ガイド](docs/LINE_CREDENTIALS_SETUP.md)を参照
+2. **direnvで環境変数を設定**: `.envrc.example`をコピーして`.envrc`を作成
+3. **Lambda関数に反映**: `./scripts/update-lambda-env.sh`を実行
+
+詳細は以下のドキュメントを参照：
+- [LINE認証情報のローカル設定ガイド](docs/LINE_CREDENTIALS_SETUP.md)
+- [LINE Bot セットアップガイド](docs/LINE_SETUP.md)
 
 ## 開発状況
 

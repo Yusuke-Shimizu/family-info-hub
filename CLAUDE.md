@@ -1,50 +1,69 @@
-# CLAUDE.md
+# Claude Desktop MCP設定
 
-このファイルは、Claude Code (claude.ai/code) がこのリポジトリのコードを扱う際のガイダンスを提供します。
+このプロジェクトでは、Claude DesktopのMCP（Model Context Protocol）を使用してAWS AgentCoreと連携します。
 
-## プロジェクト概要
+## 設定方法
 
-family-info-hubは、学校や習い事からの子供の情報を管理するAI駆動システムです。このシステムは、さまざまなソース(紙の書類、デジタルメッセージ、ファイル)からの重要な情報を整理・要約し、アクセスしやすくすることで家族をサポートします。
+### 1. Claude Desktop設定ファイルを開く
 
-**現在のステータス**: 要件定義フェーズ - 技術スタック未決定
+macOSの場合：
+```bash
+code ~/Library/Application\ Support/Claude/claude_desktop_config.json
+```
 
-## コア要件
+### 2. MCP設定を追加
 
-### 主要機能
-1. **マルチフォーマット入力処理**
-   - 写真撮影 + OCRによる紙の書類
-   - デジタルメッセージ(メール、LINE等)
-   - 直接ファイルアップロード(PDF、画像)
+```json
+{
+  "mcpServers": {
+    "agentcore": {
+      "command": "uvx",
+      "args": ["agentcore-mcp-server"],
+      "env": {
+        "AWS_REGION": "us-west-2",
+        "AWS_PROFILE": "default"
+      }
+    }
+  }
+}
+```
 
-2. **AI駆動の要約と整理** (コア機能)
-   - 重要情報の自動抽出
-   - 書類やメッセージの構造化保存
-   - 自然言語Q&Aインターフェース(例: 「次の遠足はいつ?」「太郎の宿題の締切は?」)
+### 3. Claude Desktopを再起動
 
-3. **複数子供の管理**
-   - 2人以上の子供の個別トラッキング
-   - 子供、学校、活動ごとの分類
-   - 兄弟姉妹の統合スケジュール表示
+設定を反映するためにClaude Desktopを再起動してください。
 
-4. **家族間での情報共有**
-   - マルチユーザーアクセス(両親)
-   - 情報の同期アクセス
+## 使用方法
 
-### 管理する情報の種類
-- 学校関連: お便り、スケジュール、宿題、PTA活動
-- 習い事: レッスンスケジュール、イベント、料金、先生からの連絡
+Claude Desktopで以下のようなプロンプトを使用できます：
 
-## 開発ガイドライン
+```
+AgentCore Runtimeにデプロイされているエージェントを呼び出して、
+「こんにちは」と挨拶してください
+```
 
-### 言語とローカライゼーション
-- 主要言語: 日本語
-- UIテキスト、エラーメッセージ、ユーザー向けコンテンツは日本語で記述すること
-- コードコメントやドキュメントは英語または日本語で可
+## トラブルシューティング
 
-### アーキテクチャの考慮事項(今後)
-技術アーキテクチャを実装する際は以下を考慮:
-- 書類のデジタル化のためのOCR処理パイプライン
-- 要約とQ&AのためのAI/LLM統合
-- 家族共有のためのマルチテナントデータモデル
-- 書類の保存と検索システム
-- 子供/活動の分類スキーマ
+### MCPサーバーが起動しない
+
+```bash
+# uvxが正しくインストールされているか確認
+which uvx
+
+# agentcore-mcp-serverが利用可能か確認
+uvx agentcore-mcp-server --help
+```
+
+### AWS認証エラー
+
+```bash
+# AWS認証情報を確認
+aws sts get-caller-identity --profile default
+
+# リージョンを確認
+echo $AWS_REGION
+```
+
+## 参考
+
+- [MCP公式ドキュメント](https://modelcontextprotocol.io/)
+- [AgentCore MCP Server](https://github.com/awslabs/agentcore-mcp-server)

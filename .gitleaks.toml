@@ -1,0 +1,58 @@
+# Gitleaks configuration file
+title = "Gitleaks Configuration for family-info-hub"
+
+[extend]
+# useDefault will extend the base configuration with the default gitleaks config:
+# https://github.com/gitleaks/gitleaks/blob/master/config/gitleaks.toml
+useDefault = true
+
+[allowlist]
+description = "Allowlist for false positives"
+paths = [
+  '''\.envrc\.example$''',
+  '''docs/.*\.md$''',
+]
+
+# AWS Account ID pattern
+[[rules]]
+id = "aws-account-id"
+description = "AWS Account ID"
+regex = '''\b\d{12}\b'''
+tags = ["aws", "account-id"]
+[rules.allowlist]
+paths = [
+  '''\.envrc\.example$''',
+  '''README\.md$''',
+]
+
+# LINE Channel Secret pattern
+[[rules]]
+id = "line-channel-secret"
+description = "LINE Channel Secret"
+regex = '''[0-9a-f]{32}'''
+tags = ["line", "secret"]
+[rules.allowlist]
+paths = [
+  '''\.envrc\.example$''',
+  '''docs/.*\.md$''',
+]
+regexes = [
+  '''YOUR_CHANNEL_SECRET''',
+  '''1234567890abcdef1234567890abcdef''',
+]
+
+# LINE Channel Access Token pattern
+[[rules]]
+id = "line-channel-access-token"
+description = "LINE Channel Access Token"
+regex = '''eyJ[A-Za-z0-9-_=]+\.[A-Za-z0-9-_=]+\.?[A-Za-z0-9-_.+/=]*'''
+tags = ["line", "token"]
+[rules.allowlist]
+paths = [
+  '''\.envrc\.example$''',
+  '''docs/.*\.md$''',
+]
+regexes = [
+  '''YOUR_CHANNEL_ACCESS_TOKEN''',
+  '''eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\.\.\.''',
+]

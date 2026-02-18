@@ -1,0 +1,12 @@
+# LINE Messaging API 認証情報
+# 実際の値を設定したら .envrc にコピーしてください
+# .envrc は .gitignore に含まれているので安全です
+
+# LINE Developers Consoleから取得した値を設定
+export LINE_CHANNEL_ID="YOUR_CHANNEL_ID_HERE"
+export LINE_CHANNEL_SECRET="YOUR_CHANNEL_SECRET_HERE"
+export LINE_CHANNEL_ACCESS_TOKEN="YOUR_CHANNEL_ACCESS_TOKEN_HERE"
+
+# AWS設定（必要に応じて）
+export AWS_REGION="us-west-2"
+export AWS_PROFILE="default"
