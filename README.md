@@ -56,13 +56,33 @@
 
 ### Lambda関数の直接テスト
 
-LINEからメッセージを送らなくても、Lambda関数を直接呼び出してテストできます：
+#### 方法1: pytestで実行（推奨）
 
 ```bash
-# Pythonスクリプトでテスト（推奨）
-python3 scripts/test_lambda_invoke.py "テストメッセージ"
+cd line-bot-lambda
 
+# Lambda直接呼び出しテストのみ実行
+uv run pytest tests/test_integration.py -k "lambda_invoke" -v
+
+# 特定のテストを実行
+uv run pytest tests/test_integration.py::test_lambda_invoke_simple_message -v -s
+
+# すべての統合テストを実行
+uv run pytest tests/test_integration.py -v
+```
+
+**テスト内容**:
+- `test_lambda_invoke_simple_message`: 簡単なメッセージ処理
+- `test_lambda_invoke_calculation`: 計算リクエスト
+- `test_lambda_invoke_session_persistence`: セッション永続化
+- `test_lambda_invoke_missing_signature`: 署名なしエラー
+- `test_lambda_invoke_invalid_signature`: 無効な署名エラー
+
+#### 方法2: Pythonスクリプトで実行
+
+```bash
 # カスタムメッセージでテスト
+python3 scripts/test_lambda_invoke.py "テストメッセージ"
 python3 scripts/test_lambda_invoke.py "What is 2 + 2?"
 ```
 
@@ -72,6 +92,15 @@ python3 scripts/test_lambda_invoke.py "What is 2 + 2?"
 - ログを自動的に表示
 
 注意: LINE Reply APIは実際のreply_tokenが必要なため、テストでは`Invalid reply token`エラーが出ますが、これは正常です。AgentCore Runtimeの呼び出しが成功していれば問題ありません。
+
+### HTTP経由のテスト
+
+```bash
+cd line-bot-lambda
+
+# Webhook URL経由のテスト
+uv run pytest tests/test_integration.py -k "webhook" -v
+```
 
 ### 統合テスト
 
