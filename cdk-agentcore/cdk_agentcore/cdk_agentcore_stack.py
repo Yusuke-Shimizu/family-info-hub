@@ -124,7 +124,10 @@ class CdkAgentcoreStack(Stack):
             iam.PolicyStatement(
                 effect=iam.Effect.ALLOW,
                 actions=["bedrock-agentcore:InvokeAgentRuntime"],
-                resources=[runtime.agent_runtime_arn]
+                resources=[
+                    runtime.agent_runtime_arn,
+                    f"{runtime.agent_runtime_arn}/*"
+                ]
             )
         )
 

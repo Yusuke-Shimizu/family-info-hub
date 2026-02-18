@@ -185,7 +185,7 @@ def invoke_agent(session_id: str, user_message: str) -> str:
         response = bedrock_client.invoke_agent_runtime(
             agentRuntimeArn=AGENT_RUNTIME_ARN,
             payload=json.dumps(payload).encode("utf-8"),
-            sessionId=session_id
+            runtimeSessionId=session_id
         )
         
         # レスポンスを解析

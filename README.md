@@ -52,9 +52,36 @@
 - **Package Manager**: uv
 - **CI/CD**: GitHub Actions
 
-## セットアップガイド
+## 開発・テスト
 
-### 開発環境のセットアップ
+### Lambda関数の直接テスト
+
+LINEからメッセージを送らなくても、Lambda関数を直接呼び出してテストできます：
+
+```bash
+# Pythonスクリプトでテスト（推奨）
+python3 scripts/test_lambda_invoke.py "テストメッセージ"
+
+# カスタムメッセージでテスト
+python3 scripts/test_lambda_invoke.py "What is 2 + 2?"
+```
+
+このスクリプトは：
+- Lambda関数を直接呼び出し
+- AgentCore Runtimeとの連携を確認
+- ログを自動的に表示
+
+注意: LINE Reply APIは実際のreply_tokenが必要なため、テストでは`Invalid reply token`エラーが出ますが、これは正常です。AgentCore Runtimeの呼び出しが成功していれば問題ありません。
+
+### 統合テスト
+
+```bash
+cd line-bot-lambda
+export LINE_CHANNEL_SECRET="YOUR_CHANNEL_SECRET"
+uv run pytest tests/test_integration.py -v -s
+```
+
+## 開発環境のセットアップ
 
 #### 1. pre-commitフックのインストール（推奨）
 
