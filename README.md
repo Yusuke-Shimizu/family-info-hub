@@ -56,7 +56,7 @@
 
 ### Lambda関数の直接テスト
 
-#### 方法1: pytestで実行（推奨）
+pytestで実行（LINEからメッセージを送らなくてもテスト可能）：
 
 ```bash
 cd line-bot-lambda
@@ -78,19 +78,6 @@ uv run pytest tests/test_integration.py -v
 - `test_lambda_invoke_missing_signature`: 署名なしエラー
 - `test_lambda_invoke_invalid_signature`: 無効な署名エラー
 
-#### 方法2: Pythonスクリプトで実行
-
-```bash
-# カスタムメッセージでテスト
-python3 scripts/test_lambda_invoke.py "テストメッセージ"
-python3 scripts/test_lambda_invoke.py "What is 2 + 2?"
-```
-
-このスクリプトは：
-- Lambda関数を直接呼び出し
-- AgentCore Runtimeとの連携を確認
-- ログを自動的に表示
-
 注意: LINE Reply APIは実際のreply_tokenが必要なため、テストでは`Invalid reply token`エラーが出ますが、これは正常です。AgentCore Runtimeの呼び出しが成功していれば問題ありません。
 
 ### HTTP経由のテスト
@@ -102,7 +89,7 @@ cd line-bot-lambda
 uv run pytest tests/test_integration.py -k "webhook" -v
 ```
 
-### 統合テスト
+### 統合テスト（すべて）
 
 ```bash
 cd line-bot-lambda
