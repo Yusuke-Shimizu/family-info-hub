@@ -42,13 +42,19 @@ session_table = dynamodb.Table(SESSION_TABLE_NAME)
 def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     """Lambda関数のエントリーポイント"""
     
+    print(f"Received event: {json.dumps(event)}")
+    
     # Lambda Function URLからのリクエスト処理
     try:
         # 署名検証
         signature = event["headers"].get("x-line-signature", "")
         body = event.get("body", "")
         
+        print(f"Signature present: {bool(signature)}")
+        print(f"Body length: {len(body)}")
+        
         if not signature:
+            print("Missing signature")
             return {
                 "statusCode": 401,
                 "body": json.dumps({"error": "Missing signature"})
@@ -56,15 +62,21 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         
         # 署名検証
         if not verify_signature(body, signature):
+            print("Invalid signature")
             return {
                 "statusCode": 401,
                 "body": json.dumps({"error": "Invalid signature"})
             }
         
+        print("Signature verified successfully")
+        
         # Webhookイベント処理
         webhook_body = json.loads(body)
+        events = webhook_body.get("events", [])
+        print(f"Processing {len(events)} events")
         
-        for webhook_event in webhook_body.get("events", []):
+        for webhook_event in events:
+            print(f"Event type: {webhook_event.get('type')}")
             handle_event(webhook_event)
         
         return {
@@ -74,6 +86,8 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         
     except Exception as e:
         print(f"Error: {str(e)}")
+        import traceback
+        print(f"Traceback: {traceback.format_exc()}")
         return {
             "statusCode": 500,
             "body": json.dumps({"error": str(e)})
