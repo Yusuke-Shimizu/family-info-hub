@@ -230,6 +230,97 @@ print(json.dumps(result, indent=2, ensure_ascii=False))
 EOF
 ```
 
+### AgentCore Memory
+
+#### メモリリソースの確認
+
+```bash
+# メモリリソース一覧
+aws bedrock-agentcore-control list-memories \
+  --region us-west-2 \
+  --output json | jq '.memories[] | {id: .id, name: .name, status: .status}'
+
+# メモリの詳細（戦略・設定を含む）
+MEMORY_ID="<memory-id>"
+
+aws bedrock-agentcore-control get-memory \
+  --memory-id "$MEMORY_ID" \
+  --region us-west-2 \
+  --output json | jq '.memory | {name: .name, status: .status, eventExpiryDuration: .eventExpiryDuration, strategies: [.strategies[] | {name: .name, type: .type, namespaces: .namespaces, status: .status}]}'
+```
+
+#### 短期記憶（Events）の確認
+
+```bash
+# セッション内の会話履歴を確認
+# actorId: groupId（グループ）またはuserId（個人）
+# sessionId: DynamoDBに保存されているsession_id
+MEMORY_ID="<memory-id>"
+ACTOR_ID="<groupId or userId>"
+SESSION_ID="<session-id>"
+
+aws bedrock-agentcore list-events \
+  --memory-id "$MEMORY_ID" \
+  --actor-id "$ACTOR_ID" \
+  --session-id "$SESSION_ID" \
+  --region us-west-2 \
+  --output json | jq '.events[] | {eventId: .eventId, timestamp: .eventTimestamp}'
+```
+
+#### 長期記憶（Memory Records）の確認
+
+```bash
+# 戦略ごとの長期記憶レコードを確認
+MEMORY_ID="<memory-id>"
+STRATEGY_ID="<strategy-id>"   # get-memory で確認できる
+ACTOR_ID="<groupId or userId>"
+
+# SEMANTIC（家族の基本情報・事実）
+aws bedrock-agentcore list-memory-records \
+  --memory-id "$MEMORY_ID" \
+  --namespace "/family/${ACTOR_ID}/facts" \
+  --region us-west-2 \
+  --output json | jq '.memoryRecordSummaries[] | {id: .memoryRecordId, content: .content.text}'
+
+# USER_PREFERENCE（好み・設定）
+aws bedrock-agentcore list-memory-records \
+  --memory-id "$MEMORY_ID" \
+  --namespace "/family/${ACTOR_ID}/preferences" \
+  --region us-west-2 \
+  --output json | jq '.memoryRecordSummaries[] | {id: .memoryRecordId, content: .content.text}'
+
+# EPISODIC（出来事・イベント）
+aws bedrock-agentcore list-memory-records \
+  --memory-id "$MEMORY_ID" \
+  --namespace "/family/${ACTOR_ID}/episodes" \
+  --region us-west-2 \
+  --output json | jq '.memoryRecordSummaries[] | {id: .memoryRecordId, content: .content.text}'
+
+# キーワードでセマンティック検索
+aws bedrock-agentcore retrieve-memory-records \
+  --memory-id "$MEMORY_ID" \
+  --namespace "/family/${ACTOR_ID}/facts" \
+  --search-criteria '{"searchQuery": "アレルギー", "topK": 5}' \
+  --region us-west-2 \
+  --output json | jq '.memoryRecordSummaries[] | {score: .score, content: .content.text}'
+```
+
+#### メモリ抽出ジョブの確認
+
+```bash
+# 長期記憶への変換ジョブ状況（短期→長期の自動抽出）
+aws bedrock-agentcore list-memory-extraction-jobs \
+  --memory-id "$MEMORY_ID" \
+  --region us-west-2 \
+  --output json | jq '.jobs[] | {jobId: .jobID, status: .status, failureReason: .failureReason}'
+
+# 失敗したジョブのみ確認
+aws bedrock-agentcore list-memory-extraction-jobs \
+  --memory-id "$MEMORY_ID" \
+  --region us-west-2 \
+  --output json | jq '[.jobs[] | select(.status == "FAILED")]'
+```
+
 ---
 
 ## ログの確認
