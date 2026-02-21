@@ -29,6 +29,7 @@ LINE_CHANNEL_SECRET = os.environ["LINE_CHANNEL_SECRET"]
 AGENT_RUNTIME_ARN = os.environ["AGENT_RUNTIME_ARN"]
 SESSION_TABLE_NAME = os.environ.get("SESSION_TABLE_NAME", "LineAgentSessions")
 AWS_REGION = os.environ.get("AWS_DEFAULT_REGION", "us-west-2")
+MEMORY_ID = os.environ.get("MEMORY_ID", "")
 
 # LINE Bot SDK設定
 configuration = Configuration(access_token=LINE_CHANNEL_ACCESS_TOKEN)
@@ -137,7 +138,15 @@ def handle_event(event: Dict[str, Any]) -> None:
         print(f"Received text message: {user_message}")
 
         session_id = get_or_create_session(session_key)
-        agent_response = invoke_agent(session_id, user_message)
+
+        # 長期記憶を検索してコンテキストとして付加
+        memory_context = get_long_term_memory(session_key, user_message)
+
+        agent_response = invoke_agent(session_id, user_message, memory_context)
+
+        # 会話を短期記憶に記録
+        save_conversation(session_key, session_id, user_message, agent_response)
+
         reply_message(reply_token, agent_response)
 
     elif message_type == "image":
@@ -145,6 +154,11 @@ def handle_event(event: Dict[str, Any]) -> None:
         print(f"Received image message, message_id: {message_id}")
 
         image_response = analyze_image(message_id)
+        session_id = get_or_create_session(session_key)
+
+        # 画像分析結果も短期記憶に記録
+        save_conversation(session_key, session_id, "[画像を送信]", image_response)
+
         reply_message(reply_token, image_response)
 
     else:
@@ -203,6 +217,50 @@ def analyze_image(message_id: str) -> str:
         return f"画像の分析中にエラーが発生しました: {str(e)}"
 
 
+def get_long_term_memory(actor_id: str, query: str) -> str:
+    """長期記憶から関連情報をセマンティック検索"""
+    if not MEMORY_ID:
+        return ""
+    namespaces = [
+        f"/family/{actor_id}/facts/",
+        f"/family/{actor_id}/preferences/",
+    ]
+    results = []
+    for ns in namespaces:
+        try:
+            resp = bedrock_client.retrieve_memory_records(
+                memoryId=MEMORY_ID,
+                namespace=ns,
+                searchCriteria={"searchQuery": query, "topK": 3}
+            )
+            for r in resp.get("memoryRecordSummaries", []):
+                results.append(r["content"]["text"])
+        except Exception as e:
+            print(f"retrieve_memory_records error ({ns}): {e}")
+    return "\n".join(results)
+
+
+def save_conversation(actor_id: str, session_id: str, user_msg: str, assistant_msg: str) -> None:
+    """会話をAgentCore Memoryの短期記憶（Events）に記録"""
+    if not MEMORY_ID:
+        return
+    from datetime import datetime, timezone
+    try:
+        bedrock_client.create_event(
+            memoryId=MEMORY_ID,
+            actorId=actor_id,
+            sessionId=session_id,
+            eventTimestamp=datetime.now(timezone.utc),
+            payload=[
+                {"conversational": {"content": {"text": user_msg}, "role": "USER"}},
+                {"conversational": {"content": {"text": assistant_msg}, "role": "ASSISTANT"}},
+            ]
+        )
+        print(f"Saved conversation event for actor={actor_id}, session={session_id}")
+    except Exception as e:
+        print(f"create_event error: {e}")
+
+
 def get_or_create_session(user_id: str) -> str:
     """DynamoDBからセッションIDを取得、なければ新規作成"""
     
@@ -251,11 +309,15 @@ def get_or_create_session(user_id: str) -> str:
         return str(uuid.uuid4())
 
 
-def invoke_agent(session_id: str, user_message: str) -> str:
+def invoke_agent(session_id: str, user_message: str, memory_context: str = "") -> str:
     """AgentCore Runtimeを呼び出し"""
-    
+
     try:
-        payload = {"prompt": user_message}
+        if memory_context:
+            prompt = f"[過去の関連記憶]\n{memory_context}\n\n[ユーザーのメッセージ]\n{user_message}"
+        else:
+            prompt = user_message
+        payload = {"prompt": prompt}
         
         response = bedrock_client.invoke_agent_runtime(
             agentRuntimeArn=AGENT_RUNTIME_ARN,

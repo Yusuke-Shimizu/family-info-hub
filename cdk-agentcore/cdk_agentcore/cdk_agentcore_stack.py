@@ -11,6 +11,7 @@ from aws_cdk import (
 from aws_cdk import aws_bedrock_agentcore_alpha as agentcore
 from constructs import Construct
 import aws_cdk as core
+import os
 
 
 class CdkAgentcoreStack(Stack):
@@ -85,6 +86,23 @@ class CdkAgentcoreStack(Stack):
             removal_policy=RemovalPolicy.DESTROY,  # 開発用：本番環境ではRETAINに変更
         )
 
+        # AgentCore Memory（短期・長期記憶）
+        memory = agentcore.Memory(self, "FamilyInfoMemory",
+            memory_name="family_info_hub",
+            description="家族情報ハブのメモリ",
+            expiration_duration=Duration.days(90),
+            memory_strategies=[
+                agentcore.MemoryStrategy.using_semantic(
+                    name="FamilyFacts",
+                    namespaces=["/family/{actorId}/facts/"],
+                ),
+                agentcore.MemoryStrategy.using_user_preference(
+                    name="FamilyPreferences",
+                    namespaces=["/family/{actorId}/preferences/"],
+                ),
+            ]
+        )
+
         # Lambda Function（LINE Bot Webhook Handler）
         line_bot_lambda = lambda_.Function(
             self,
@@ -104,10 +122,11 @@ class CdkAgentcoreStack(Stack):
             timeout=Duration.seconds(30),
             memory_size=256,
             environment={
-                "LINE_CHANNEL_ACCESS_TOKEN": "",  # デプロイ後に手動設定
-                "LINE_CHANNEL_SECRET": "",  # デプロイ後に手動設定
+                "LINE_CHANNEL_ACCESS_TOKEN": os.environ.get("LINE_CHANNEL_ACCESS_TOKEN", ""),
+                "LINE_CHANNEL_SECRET": os.environ.get("LINE_CHANNEL_SECRET", ""),
                 "AGENT_RUNTIME_ARN": runtime.agent_runtime_arn,
                 "SESSION_TABLE_NAME": session_table.table_name,
+                "MEMORY_ID": memory.memory_id,
             }
         )
 
@@ -127,6 +146,24 @@ class CdkAgentcoreStack(Stack):
                 resources=[
                     runtime.agent_runtime_arn,
                     f"{runtime.agent_runtime_arn}/*"
+                ]
+            )
+        )
+
+        # AgentCore Memory操作権限
+        line_bot_lambda.add_to_role_policy(
+            iam.PolicyStatement(
+                effect=iam.Effect.ALLOW,
+                actions=[
+                    "bedrock-agentcore:CreateEvent",
+                    "bedrock-agentcore:ListEvents",
+                    "bedrock-agentcore:GetEvent",
+                    "bedrock-agentcore:RetrieveMemoryRecords",
+                    "bedrock-agentcore:ListMemoryRecords",
+                ],
+                resources=[
+                    f"arn:aws:bedrock-agentcore:{self.region}:{self.account}:memory/{memory.memory_id}",
+                    f"arn:aws:bedrock-agentcore:{self.region}:{self.account}:memory/{memory.memory_id}/*",
                 ]
             )
         )
@@ -156,4 +193,9 @@ class CdkAgentcoreStack(Stack):
             "SessionTableName",
             description="DynamoDB table name for session management",
             value=session_table.table_name
+        )
+
+        CfnOutput(self, "MemoryId",
+            description="AgentCore Memory ID",
+            value=memory.memory_id
         )
