@@ -131,6 +131,18 @@ class CdkAgentcoreStack(Stack):
             )
         )
 
+        # Bedrock Claude vision（画像分析）呼び出し権限
+        line_bot_lambda.add_to_role_policy(
+            iam.PolicyStatement(
+                effect=iam.Effect.ALLOW,
+                actions=["bedrock:InvokeModel"],
+                resources=[
+                    "arn:aws:bedrock:*::foundation-model/anthropic.claude-3-5-sonnet-20241022-v2:0",
+                    f"arn:aws:bedrock:*:{self.account}:inference-profile/*"
+                ]
+            )
+        )
+
         # 出力
         CfnOutput(
             self,

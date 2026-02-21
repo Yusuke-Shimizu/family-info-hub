@@ -16,6 +16,7 @@ from linebot.v3.messaging import (
     Configuration,
     ApiClient,
     MessagingApi,
+    MessagingApiBlob,
     ReplyMessageRequest,
     TextMessage,
 )
@@ -107,25 +108,83 @@ def verify_signature(body: str, signature: str) -> bool:
 
 def handle_event(event: Dict[str, Any]) -> None:
     """Webhookイベントを処理"""
-    
-    # メッセージイベントのみ処理
-    if event["type"] != "message" or event["message"]["type"] != "text":
+
+    if event["type"] != "message":
         return
-    
+
+    message_type = event["message"]["type"]
     user_id = event["source"]["userId"]
     reply_token = event["replyToken"]
-    user_message = event["message"]["text"]
-    
-    print(f"Received message from {user_id}: {user_message}")
-    
-    # セッションIDを取得または作成
-    session_id = get_or_create_session(user_id)
-    
-    # AgentCore Runtimeを呼び出し
-    agent_response = invoke_agent(session_id, user_message)
-    
-    # LINE Reply APIで応答
-    reply_message(reply_token, agent_response)
+
+    if message_type == "text":
+        user_message = event["message"]["text"]
+        print(f"Received text message from {user_id}: {user_message}")
+
+        session_id = get_or_create_session(user_id)
+        agent_response = invoke_agent(session_id, user_message)
+        reply_message(reply_token, agent_response)
+
+    elif message_type == "image":
+        message_id = event["message"]["id"]
+        print(f"Received image message from {user_id}, message_id: {message_id}")
+
+        image_response = analyze_image(message_id)
+        reply_message(reply_token, image_response)
+
+    else:
+        print(f"Unsupported message type: {message_type}")
+
+
+def analyze_image(message_id: str) -> str:
+    """LINE画像をダウンロードしてClaude visionで分析"""
+
+    try:
+        # LINE APIから画像をダウンロード
+        with ApiClient(configuration) as api_client:
+            blob_api = MessagingApiBlob(api_client)
+            image_content = blob_api.get_message_content(message_id=message_id)
+
+        image_base64 = base64.b64encode(image_content).decode("utf-8")
+        print(f"Downloaded image, size: {len(image_content)} bytes")
+
+        # Bedrock Claude visionで分析
+        bedrock_runtime = boto3.client("bedrock-runtime", region_name=AWS_REGION)
+        body = {
+            "anthropic_version": "bedrock-2023-05-31",
+            "max_tokens": 1024,
+            "messages": [
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "image",
+                            "source": {
+                                "type": "base64",
+                                "media_type": "image/jpeg",
+                                "data": image_base64,
+                            },
+                        },
+                        {
+                            "type": "text",
+                            "text": "この画像について日本語で説明してください。",
+                        },
+                    ],
+                }
+            ],
+        }
+
+        response = bedrock_runtime.invoke_model(
+            modelId="anthropic.claude-3-5-sonnet-20241022-v2:0",
+            body=json.dumps(body),
+        )
+        result = json.loads(response["body"].read())
+        return result["content"][0]["text"]
+
+    except Exception as e:
+        print(f"Error analyzing image: {str(e)}")
+        import traceback
+        print(f"Traceback: {traceback.format_exc()}")
+        return f"画像の分析中にエラーが発生しました: {str(e)}"
 
 
 def get_or_create_session(user_id: str) -> str:
