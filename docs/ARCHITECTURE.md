@@ -111,7 +111,9 @@
                        │  │                                        │
                        │  └── 長期記憶（Memory Records）           │
                        │      重要情報を自動抽出・永続保存          │
-                       │      戦略: SEMANTIC（事実・嗜好）          │
+                       │      戦略1: SEMANTIC（家族の基本情報）     │
+                       │      戦略2: USER_PREFERENCE（好み・設定） │
+                       │      戦略3: EPISODIC（出来事・イベント）   │
                        │      namespace: /family/{actorId}        │
                        └───────────────────────────────────────────┘
 ```
@@ -149,16 +151,27 @@ create_event(memoryId, sessionId, actorId, payload) で記録
 ### 長期記憶（Memory Records）
 
 - **用途**: セッションをまたいだ重要情報の保持
-- **戦略**: `SEMANTIC`（事実・嗜好・重要情報を自動抽出）
 - **namespace**: `/family/{actorId}`
-- **効果**: 「子どもの名前」「アレルギー情報」「好みの話題」などを長期保持
+- **効果**: 「子どもの名前」「アレルギー情報」「好みの話題」「過去の出来事」などを長期保持
+
+#### メモリ戦略
+
+| 戦略 | namespace | 保存される内容 | 例 |
+|------|-----------|--------------|-----|
+| **SEMANTIC** | `/family/{actorId}/facts` | 家族の基本情報・事実 | 「子どもの名前は○○」「アレルギーはエビ」 |
+| **USER_PREFERENCE** | `/family/{actorId}/preferences` | グループ・個人の好みや設定 | 「丁寧語で話してほしい」「料理の話題が多い」 |
+| **EPISODIC** | `/family/{actorId}/episodes` | 過去の出来事・イベント | 「2/21に懇談会の資料を共有した」「先週の行事の決め事」 |
+
+> **採用しない戦略**
+> `SUMMARIZATION` → 短期記憶（Events）が90日保持されるため不要
+> `CUSTOM` → 工数対効果が低いため当面は見送り
 
 ```
 [Events が一定量蓄積]
       ↓
 AgentCore が自動的に重要情報を抽出（Memory Extraction Job）
       ↓
-Memory Records として永続保存
+戦略ごとに Memory Records として永続保存
       ↓
 次回以降の会話で retrieve_memory_records() で検索・活用
 ```
