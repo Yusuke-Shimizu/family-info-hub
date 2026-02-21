@@ -139,10 +139,13 @@ def handle_event(event: Dict[str, Any]) -> None:
 
         session_id = get_or_create_session(session_key)
 
-        # 長期記憶を検索してコンテキストとして付加
-        memory_context = get_long_term_memory(session_key, user_message)
+        # 短期記憶（現セッションの会話履歴）を取得
+        short_term_context = get_short_term_memory(session_key, session_id)
 
-        agent_response = invoke_agent(session_id, user_message, memory_context)
+        # 長期記憶（過去セッションの知識）をセマンティック検索
+        long_term_context = get_long_term_memory(session_key, user_message)
+
+        agent_response = invoke_agent(session_id, user_message, short_term_context, long_term_context)
 
         # 会話を短期記憶に記録
         save_conversation(session_key, session_id, user_message, agent_response)
@@ -204,7 +207,7 @@ def analyze_image(message_id: str) -> str:
         }
 
         response = bedrock_runtime.invoke_model(
-            modelId="anthropic.claude-3-5-sonnet-20241022-v2:0",
+            modelId="us.anthropic.claude-sonnet-4-6",
             body=json.dumps(body),
         )
         result = json.loads(response["body"].read())
@@ -215,6 +218,32 @@ def analyze_image(message_id: str) -> str:
         import traceback
         print(f"Traceback: {traceback.format_exc()}")
         return f"画像の分析中にエラーが発生しました: {str(e)}"
+
+
+def get_short_term_memory(actor_id: str, session_id: str) -> str:
+    """短期記憶（Events）から現セッションの会話履歴を取得"""
+    if not MEMORY_ID:
+        return ""
+    try:
+        resp = bedrock_client.list_events(
+            memoryId=MEMORY_ID,
+            actorId=actor_id,
+            sessionId=session_id,
+            maxResults=10,
+        )
+        lines = []
+        for ev in resp.get("events", []):
+            for item in ev.get("payload", []):
+                conv = item.get("conversational", {})
+                role = conv.get("role", "USER")
+                text = conv.get("content", {}).get("text", "")
+                if text:
+                    lines.append(f"{role}: {text}")
+        print(f"Short-term memory: {len(lines)} turns retrieved")
+        return "\n".join(lines)
+    except Exception as e:
+        print(f"list_events error: {e}")
+        return ""
 
 
 def get_long_term_memory(actor_id: str, query: str) -> str:
@@ -309,14 +338,17 @@ def get_or_create_session(user_id: str) -> str:
         return str(uuid.uuid4())
 
 
-def invoke_agent(session_id: str, user_message: str, memory_context: str = "") -> str:
+def invoke_agent(session_id: str, user_message: str, short_term_context: str = "", long_term_context: str = "") -> str:
     """AgentCore Runtimeを呼び出し"""
 
     try:
-        if memory_context:
-            prompt = f"[過去の関連記憶]\n{memory_context}\n\n[ユーザーのメッセージ]\n{user_message}"
-        else:
-            prompt = user_message
+        sections = []
+        if long_term_context:
+            sections.append(f"[過去の長期記憶]\n{long_term_context}")
+        if short_term_context:
+            sections.append(f"[今セッションの会話履歴]\n{short_term_context}")
+        sections.append(f"[ユーザーのメッセージ]\n{user_message}")
+        prompt = "\n\n".join(sections)
         payload = {"prompt": prompt}
         
         response = bedrock_client.invoke_agent_runtime(

@@ -7,18 +7,18 @@ os.environ.setdefault("AWS_DEFAULT_REGION", "us-west-2")
 
 app = BedrockAgentCoreApp()
 
-# シンプルなエージェントを作成（us-west-2で利用可能なClaude 3.5 Sonnet v2を使用）
-agent = Agent(model="anthropic.claude-3-5-sonnet-20241022-v2:0")
-
 
 @app.entrypoint
 def invoke(payload, context=None):
     """エージェントのエントリーポイント"""
     user_message = payload.get("prompt", "こんにちは！")
-    
-    # エージェントを実行
+
+    # 呼び出しごとに新しいAgentを生成する。
+    # グローバルで使い回すと内部会話履歴が全セッション・全ユーザーで混入するため、
+    # コンテキストはLambda側がメモリ経由で注入する方式に統一する。
+    agent = Agent(model="us.anthropic.claude-sonnet-4-6")
     result = agent(user_message)
-    
+
     return {"result": result.message}
 
 
