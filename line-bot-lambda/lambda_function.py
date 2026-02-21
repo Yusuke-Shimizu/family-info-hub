@@ -106,6 +106,19 @@ def verify_signature(body: str, signature: str) -> bool:
     return hmac.compare_digest(signature, expected_signature)
 
 
+def get_session_key(event: Dict[str, Any]) -> str:
+    """会話のコンテキストに応じたセッションキーを返す"""
+    source = event["source"]
+    source_type = source["type"]
+
+    if source_type == "group":
+        return source["groupId"]
+    elif source_type == "room":
+        return source["roomId"]
+    else:
+        return source["userId"]
+
+
 def handle_event(event: Dict[str, Any]) -> None:
     """Webhookイベントを処理"""
 
@@ -113,20 +126,23 @@ def handle_event(event: Dict[str, Any]) -> None:
         return
 
     message_type = event["message"]["type"]
-    user_id = event["source"]["userId"]
+    user_id = event["source"].get("userId", "unknown")
+    session_key = get_session_key(event)
     reply_token = event["replyToken"]
+
+    print(f"source_type={event['source']['type']}, session_key={session_key}, user_id={user_id}")
 
     if message_type == "text":
         user_message = event["message"]["text"]
-        print(f"Received text message from {user_id}: {user_message}")
+        print(f"Received text message: {user_message}")
 
-        session_id = get_or_create_session(user_id)
+        session_id = get_or_create_session(session_key)
         agent_response = invoke_agent(session_id, user_message)
         reply_message(reply_token, agent_response)
 
     elif message_type == "image":
         message_id = event["message"]["id"]
-        print(f"Received image message from {user_id}, message_id: {message_id}")
+        print(f"Received image message, message_id: {message_id}")
 
         image_response = analyze_image(message_id)
         reply_message(reply_token, image_response)
