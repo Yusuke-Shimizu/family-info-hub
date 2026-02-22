@@ -169,11 +169,13 @@ class CdkAgentcoreStack(Stack):
         )
 
         # Bedrock Claude vision（画像分析）呼び出し権限
+        # クロスリージョン推論プロファイル(us.*)は内部でfoundation modelにルーティングするため両方必要
         line_bot_lambda.add_to_role_policy(
             iam.PolicyStatement(
                 effect=iam.Effect.ALLOW,
                 actions=["bedrock:InvokeModel"],
                 resources=[
+                    "arn:aws:bedrock:*::foundation-model/*",
                     f"arn:aws:bedrock:*:{self.account}:inference-profile/*"
                 ]
             )
