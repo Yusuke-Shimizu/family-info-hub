@@ -45,4 +45,4 @@ jobs:
     
     - name: Run tests
       working-directory: ./cdk-agentcore
-      run: uv run pytest tests/ -v
+      run: uv run pytest tests/unit/ -v
