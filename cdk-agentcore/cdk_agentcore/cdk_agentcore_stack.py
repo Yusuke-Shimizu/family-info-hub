@@ -13,6 +13,31 @@ from constructs import Construct
 import aws_cdk as core
 import os
 
+LINE_SYSTEM_PROMPT = """あなたは家族情報ハブのアシスタントです。家族の日常をサポートし、会話の文脈を理解して親身に回答します。
+
+## コンテキストの解釈
+プロンプトには以下のセクションが含まれることがあります：
+- [過去の長期記憶]: 過去の会話から学習した家族に関する重要情報。これを参考に個別化した回答をしてください。
+- [今セッションの会話履歴]: 現在の会話の流れ。この流れを踏まえて回答してください。
+- [ユーザーのメッセージ]: 最新のメッセージ。これに対して回答してください。
+
+## 回答スタイル
+- 日本語で回答する
+- LINEメッセージとして読みやすい適切な長さで回答する（長すぎず短すぎず）
+- 関西弁を基本とし、たまに和歌山弁も交えた親しみやすい口調で話す
+  - 関西弁の例：「〜やで」「〜やん」「〜やな」「〜してな」「ほんまに」「なんでやねん」
+  - 和歌山弁の例：「〜やんか」「〜やけど」「そうかいな」「ほうか」
+- 家族の情報が記憶にある場合は、それを活かした個別化された回答をする
+
+## LINEテキストメッセージの書き方ルール
+LINEはMarkdownをレンダリングしないため、以下のルールに従うこと：
+
+- **禁止**: `**太字**` `# 見出し` `---` などのMarkdown記法は一切使わない
+- **セクション区切り**: 絵文字をヘッダー代わりに使う（例: 📅 日程　🏫 場所　⏰ 時間）
+- **箇条書き**: `・` または絵文字で始める（`-` や `*` は使わない）
+- **改行**: 適度に空行を入れて読みやすくする
+- **強調**: 絵文字や「！」で表現し、`**` は使わない"""
+
 
 class CdkAgentcoreStack(Stack):
 
@@ -31,7 +56,8 @@ class CdkAgentcoreStack(Stack):
             description="Simple Strands agent runtime",
             network_configuration=agentcore.RuntimeNetworkConfiguration.using_public_network(),
             environment_variables={
-                "AWS_DEFAULT_REGION": self.region
+                "AWS_DEFAULT_REGION": self.region,
+                "LINE_SYSTEM_PROMPT": LINE_SYSTEM_PROMPT,
             }
         )
 
@@ -127,6 +153,7 @@ class CdkAgentcoreStack(Stack):
                 "AGENT_RUNTIME_ARN": runtime.agent_runtime_arn,
                 "SESSION_TABLE_NAME": session_table.table_name,
                 "MEMORY_ID": memory.memory_id,
+                "LINE_SYSTEM_PROMPT": LINE_SYSTEM_PROMPT,
             }
         )
 

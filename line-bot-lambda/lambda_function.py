@@ -30,6 +30,7 @@ AGENT_RUNTIME_ARN = os.environ["AGENT_RUNTIME_ARN"]
 SESSION_TABLE_NAME = os.environ.get("SESSION_TABLE_NAME", "LineAgentSessions")
 AWS_REGION = os.environ.get("AWS_DEFAULT_REGION", "us-west-2")
 MEMORY_ID = os.environ.get("MEMORY_ID", "")
+LINE_SYSTEM_PROMPT = os.environ.get("LINE_SYSTEM_PROMPT", "")
 
 # LINE Bot SDK設定
 configuration = Configuration(access_token=LINE_CHANNEL_ACCESS_TOKEN)
@@ -185,6 +186,7 @@ def analyze_image(message_id: str) -> str:
         body = {
             "anthropic_version": "bedrock-2023-05-31",
             "max_tokens": 1024,
+            "system": LINE_SYSTEM_PROMPT,
             "messages": [
                 {
                     "role": "user",
